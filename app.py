@@ -31,6 +31,16 @@ def intervals_headers():
     token = base64.b64encode(f"API_KEY:{INTERVALS_KEY}".encode()).decode()
     return {"Authorization": f"Basic {token}"}
 
+@app.route("/debug")
+def debug():
+    return jsonify({
+        "ANTHROPIC_KEY_set": bool(ANTHROPIC_KEY),
+        "ANTHROPIC_KEY_length": len(ANTHROPIC_KEY),
+        "ANTHROPIC_KEY_prefix": ANTHROPIC_KEY[:7] if ANTHROPIC_KEY else "MISSING",
+        "ATHLETE_ID": ATHLETE_ID,
+        "INTERVALS_KEY_set": bool(INTERVALS_KEY),
+    })
+
 @app.route("/")
 def index():
     return render_template("index.html")
@@ -107,7 +117,8 @@ def analyze():
             },
             timeout=30,
         )
-        r.raise_for_status()
+        if not r.ok:
+            return jsonify({"error": f"Anthropic API error {r.status_code}: {r.text}"}), 500
         text = r.json()["content"][0]["text"]
         return jsonify({"comment": text})
     except Exception as e:
